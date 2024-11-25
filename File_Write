@@ -1,0 +1,116 @@
+using System;
+using System.IO;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+public class Strategy<T>
+{
+    private IWritingStrategy<T> strat;
+
+    public IWritingStrategy<T> Strat 
+    { 
+        set { strat = value; } 
+    }
+
+    public async Task Start(string pathToFile, T content)
+    {
+        await strat.Wtiting(pathToFile, content);
+    }
+}
+
+public class FileWrite : IWritingStrategy<string>
+{
+    public async Task Wtiting(string pathToFile, string content)
+    {
+        File.WriteAllText(pathToFile, content);
+        await Task.CompletedTask;
+    }
+}
+
+public class StreamWrite : IWritingStrategy<string>
+{
+    public async Task Wtiting(string pathToFile, string content)
+    {
+        using (StreamWriter writer = new StreamWriter(pathToFile))
+        {
+            writer.Write(content);
+        }
+        await Task.CompletedTask;
+    }
+}
+
+
+public class AsyncStreamWrite : IWritingStrategy<string>
+{
+    public async Task Wtiting(string pathToFile, string content)
+    {
+        using (StreamWriter reader = new StreamWriter(pathToFile))
+        {
+            await reader.WriteAsync(content);
+
+        }
+    }
+}
+
+public class AsyncFileWrite : IWritingStrategy<string>
+{
+    public async Task Wtiting(string pathToFile, string content)
+    {
+        {
+            await File.WriteAllTextAsync(pathToFile, content);
+        }
+    }
+}
+
+public interface IWritingStrategy<T>
+{
+    Task Wtiting(string pathToFile, T content);
+}
+
+namespace file_writer
+{
+
+
+    internal class Program
+    {
+        static async Task Main(string[] args)
+        {
+            int option = 0;
+            string filePath = @"C:\Users\Стефан\OneDrive\Рабочий стол\text.txt";
+
+            Console.WriteLine("Введите данные для записи:");
+            string content = Console.ReadLine();
+            Console.WriteLine("Выберите способ записи:\n(1) WriteAllText\n(2) Write\n(3) WriteAsync\n(4) WriteAllTextAsync");
+            if (!Int32.TryParse(Console.ReadLine(), out option)) { Console.WriteLine("Введены неверные данные"); }
+            else { 
+
+            var strategy = new Strategy<string>();
+
+            switch (option)
+            {
+                case 1:
+                    strategy.Strat = new FileWrite();
+                    break;
+                case 2:
+                    strategy.Strat = new StreamWrite();
+                    break;
+                case 3:
+                    strategy.Strat = new AsyncStreamWrite();
+                    break;
+                case 4:
+                    strategy.Strat = new AsyncFileWrite();
+                    break;
+
+                default:
+                    Console.WriteLine("Введены неверные данные");
+                    break;
+            }
+            await strategy.Start(filePath, content);
+            Console.WriteLine("Данные записаны!");
+        }
+        }
+    }
+}
+

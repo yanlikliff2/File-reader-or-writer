@@ -1,0 +1,126 @@
+using System;
+using System.IO;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+public class Strategy<T>
+{
+
+    private IReadingStrategy<T> strat;
+
+    public IReadingStrategy<T> Strat
+    {
+        set { strat = value; }
+    }
+
+    public async Task<T> Start(string pathToFile)
+    {
+        return await strat.Read(pathToFile);
+    }
+}
+
+public class FileRead : IReadingStrategy<string>
+{
+    public async Task<string> Read(string pathToFile)
+    {
+        try
+        {
+            string data = File.ReadAllText(pathToFile);
+            return await Task.FromResult(data);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("The process failed: {0}", e.ToString());
+        }
+        return "error";
+    }
+}
+public class StreamRead : IReadingStrategy<string>
+{
+    public async Task<string> Read(string pathToFile)
+    {
+        try
+        {
+            using (StreamReader read = new StreamReader(pathToFile))
+            {
+                string data = read.ReadToEnd();
+                return await Task.FromResult(data);
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("The process failed: {0}", e.ToString());
+        }
+        return "error";
+    }
+}
+public class AsyncStreamRead : IReadingStrategy<string>
+{
+    public async Task<string> Read(string pathToFile)
+    {
+        try 
+        { 
+            using (StreamReader read = new StreamReader(pathToFile))
+            {
+                string data = await read.ReadToEndAsync();
+                return data;
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("The process failed: {0}", e.ToString());
+        }
+        return "error";
+    }
+}
+
+public interface IReadingStrategy<T>
+{
+    Task<T> Read(string pathToFile);
+}
+
+
+
+namespace file_read
+{
+
+
+    internal class Program
+    {
+        static async Task Main(string[] args)
+        {
+            int option = 0;
+            Random rnd = new Random();
+            string filePath = "";
+
+            Console.WriteLine("Введите путь ло файла:");
+            filePath = Console.ReadLine();
+            Console.WriteLine("Выберите способ чтения:\n(1) ReadAllText\n(2) ReadToEnd\n(3) ReadToEndAsync");
+            if (!Int32.TryParse(Console.ReadLine(), out option)) { Console.WriteLine("Введены неверные данные"); }
+            else
+            {
+                var strategy = new Strategy<string>();
+
+                switch (option)
+                {
+                    case 1:
+                        strategy.Strat = new FileRead();
+                        break;
+                    case 2:
+                        strategy.Strat = new StreamRead();
+                        break;
+                    case 3:
+                        strategy.Strat = new AsyncStreamRead();
+                        break;
+                    default:
+                        Console.WriteLine("Введены неверные данные");
+                        break;
+                }
+                string res = await strategy.Start(filePath);
+                Console.WriteLine($"Результат чтения: \n{res}");
+            }
+        }
+    }
+}
